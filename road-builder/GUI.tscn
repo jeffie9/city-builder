@@ -1,0 +1,38 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://GUI.gd" type="Script" id=1]
+
+[node name="GUI" type="MarginContainer"]
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_top = -20.0
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+margin_right = 1024.0
+margin_bottom = 20.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer"]
+margin_right = 112.0
+margin_bottom = 20.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="HBoxContainer/VBoxContainer"]
+margin_right = 112.0
+margin_bottom = 20.0
+
+[node name="StraightButton" type="Button" parent="HBoxContainer/VBoxContainer/HBoxContainer"]
+margin_right = 60.0
+margin_bottom = 20.0
+text = "Straight"
+
+[node name="CurveButton" type="Button" parent="HBoxContainer/VBoxContainer/HBoxContainer"]
+margin_left = 64.0
+margin_right = 112.0
+margin_bottom = 20.0
+text = "Curve"
+[connection signal="pressed" from="HBoxContainer/VBoxContainer/HBoxContainer/StraightButton" to="." method="_on_StraightButton_pressed"]
+[connection signal="pressed" from="HBoxContainer/VBoxContainer/HBoxContainer/CurveButton" to="." method="_on_CurveButton_pressed"]

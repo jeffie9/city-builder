@@ -2,7 +2,7 @@ extends Spatial
 
 var anchor_point : Vector3
 var inter_point : Vector3
-var m = SpatialMaterial.new()
+
 # TODO better state definitions
 var state = 0
 var mode = 0   # 0 = straight, 1 = curve
@@ -13,34 +13,19 @@ onready var roadMaterial = preload("res://assets/road_two_lane.material")
 var road002 = preload("res://assets/road002.material")
 
 func _ready():
-	m.flags_unshaded = true
-	m.flags_use_point_size = true
-	m.albedo_color = Color(1.0, 1.0, 1.0, 1.0)
+	pass
 
-	var material = SpatialMaterial.new()
-	material.albedo_color = Color(1,0,0,1)
-	var surfTool = SurfaceTool.new()
-	surfTool.begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
-	#surfTool.add_color(Color(1, 0, 0, 1))
-	surfTool.set_material(roadMaterial)
-	surfTool.add_normal(Vector3.UP)
-	surfTool.add_uv(Vector2.ZERO)
-	# first triangle is drawn counter-clockwise
-	surfTool.add_vertex(Vector3(-5,3,-3))
-	surfTool.add_vertex(Vector3(-4,3,-3))
-	surfTool.add_vertex(Vector3(-5,3,1))
-	surfTool.add_vertex(Vector3(-4,3,1))
-	var meshInstance = MeshInstance.new()
-	meshInstance.mesh = surfTool.commit()
-	add_child(meshInstance)
-
-
+func _input(event):
+	if event.is_action_pressed("ui_save"):
+		save_game()
+	elif event.is_action_pressed("ui_load"):
+		load_game()
+		load_roads()
 
 func _on_StaticBody_input_event(camera, event, click_position, click_normal, shape_idx):
 	if event is InputEventMouseMotion:
 		if state == 0:
 			var im = get_node("cursor")
-			im.set_material_override(m)
 			im.clear()
 			# draw a circle
 			var numpoints = 64
@@ -60,7 +45,11 @@ func straight_input_event(event, click_position):
 	if event is InputEventMouseButton and event.button_index == BUTTON_LEFT and event.pressed:
 		if state == 0:
 			state = 1
-			anchor_point = click_position
+			var pt = $Roads.get_closest_point(click_position)
+			if pt.distance_to(click_position) < 1:
+				anchor_point = pt
+			else:
+				anchor_point = click_position
 
 		elif state == 1:
 			state = 0
@@ -81,10 +70,13 @@ func straight_input_event(event, click_position):
 #			var meshInstance = MeshInstance.new()
 #			meshInstance.mesh = surfTool.commit()
 #			add_child(meshInstance)
-			var csg = make_csg_polygon_from_two_points(anchor_point, click_position)
+			var pt = $Roads.get_closest_point(click_position)
+			if click_position.distance_to(pt) > 1:
+				pt = click_position
+			$Roads.add_straight(anchor_point, pt)
+			var csg = make_csg_polygon_from_two_points(anchor_point, pt)
 			csg.material = roadMaterial
-			add_child(csg)
-			anchor_point = click_position
+			$Roads.add_child(csg)
 
 
 #			var length = anchor_point.distance_to(click_position)
@@ -126,7 +118,11 @@ func curve_input_event(event, click_position):
 	if event is InputEventMouseButton and event.button_index == BUTTON_LEFT and event.pressed:
 		if state == 0:
 			state = 1
-			anchor_point = click_position
+			var pt = $Roads.get_closest_point(click_position)
+			if pt.distance_to(click_position) < 1:
+				anchor_point = pt
+			else:
+				anchor_point = click_position
 
 		elif state == 1:
 			state = 2
@@ -136,9 +132,13 @@ func curve_input_event(event, click_position):
 			state = 0
 			var im = get_node("cursor")
 			im.clear()
-			var csg = make_csg_polygon_from_points(anchor_point, inter_point, click_position)
+			var pt = $Roads.get_closest_point(click_position)
+			if click_position.distance_to(pt) > 1:
+				pt = click_position
+			$Roads.add_curve(anchor_point, inter_point, pt)
+			var csg = make_csg_polygon_from_points(anchor_point, inter_point, pt)
 			csg.material = roadMaterial
-			add_child(csg)
+			$Roads.add_child(csg)
 
 
 	if event is InputEventMouseMotion:
@@ -281,3 +281,80 @@ func make_csg_polygon_from_curve(curve):
 	poly.set(3, Vector2( track_half_width, 0.0))
 	csg.polygon = poly
 	return csg
+
+
+func save_game():
+	var save_game = File.new()
+	save_game.open("user://savegame.save", File.WRITE)
+	var save_nodes = get_tree().get_nodes_in_group("Persist")
+	for node in save_nodes:
+		# Check the node is an instanced scene so it can be instanced again during load
+#		if node.filename.empty():
+#			print("persistent node '%s' is not an instanced scene, skipped" % node.name)
+#			continue
+
+		# Check the node has a save function
+		if !node.has_method("save"):
+			print("persistent node '%s' is missing a save() function, skipped" % node.name)
+			continue
+
+		# Call the node's save function
+		var node_data = node.call("save")
+
+		# Store the save dictionary as a new line in the save file
+		save_game.store_line(to_json(node_data))
+	save_game.close()
+
+func load_game():
+	var save_game = File.new()
+	if not save_game.file_exists("user://savegame.save"):
+		return # Error! We don't have a save to load.
+
+	# We need to revert the game state so we're not cloning objects
+	# during loading. This will vary wildly depending on the needs of a
+	# project, so take care with this step.
+	# For our example, we will accomplish this by deleting saveable objects.
+	var save_nodes = get_tree().get_nodes_in_group("Persist")
+#	for i in save_nodes:
+#		i.queue_free()
+
+	# Load the file line by line and process that dictionary to restore
+	# the object it represents.
+	save_game.open("user://savegame.save", File.READ)
+	while save_game.get_position() < save_game.get_len():
+		# Get the saved dictionary from the next line in the save file
+		var node_data = parse_json(save_game.get_line())
+
+		# Firstly, we need to create the object and add it to the tree and set its position.
+#		var new_object = load(node_data["filename"]).instance()
+#		get_node(node_data["parent"]).add_child(new_object)
+#		new_object.position = Vector2(node_data["pos_x"], node_data["pos_y"])
+
+		# This node is part of the main scene
+		var new_object = get_node(node_data["path"])
+
+		# Now we set the remaining variables.
+		for i in node_data.keys():
+			if i == "filename" or i == "parent" or i == "path":
+				continue
+			new_object.set(i, node_data[i])
+	save_game.close()
+
+func load_roads():
+	for seg in $Roads.road_segments:
+		var csg
+		if seg.size() == 3:
+			csg = make_csg_polygon_from_points(seg[0], seg[1], seg[2])
+		elif seg.size() == 2:
+			csg = make_csg_polygon_from_two_points(seg[0], seg[1])
+		csg.material = roadMaterial
+		$Roads.add_child(csg)
+
+func _on_GUI_curve_selected():
+	mode = 1
+	state = 0
+
+
+func _on_GUI_straight_selected():
+	mode = 0
+	state = 0
