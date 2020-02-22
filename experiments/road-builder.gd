@@ -9,8 +9,8 @@ var mode = 0   # 0 = straight, 1 = curve
 var cursor_curve = Curve3D.new()
 var half_road_width = 0.25
 
-onready var roadMaterial = preload("res://assets/road_two_lane.material")
-var road002 = preload("res://assets/road002.material")
+onready var roadMaterial = preload("res://experiments/assets/road_two_lane.material")
+var road002 = preload("res://experiments/assets/road002.material")
 
 func _ready():
 #	pass

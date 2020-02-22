@@ -16,7 +16,7 @@ func _ready():
 	for ip in nodes.keys():
 		var node = nodes[ip]
 		make_intersection(ip, node)
-		#print(node)
+#		print(node.polygon)
 		var polygon = Polygon2D.new()
 		polygon.polygon = node.polygon
 		polygon.color = Color.deeppink
@@ -33,15 +33,15 @@ func _ready():
 				var k1 = k - 1 if k > 0 else narr[j].sorted_segments.size() - 1
 				parr[j * 2] = narr[j].polygon[k]
 				parr[j * 2 + 1] = narr[j].polygon[k1]
-		print(i, parr)
+#		print(i, parr)
 		var sorted = sort_verticies_ccw(parr)
 		var polygon = Polygon2D.new()
 		polygon.polygon = [parr[sorted[0]], parr[sorted[1]], parr[sorted[2]], parr[sorted[3]]]
 		polygon.color = Color.aliceblue
 		add_child(polygon)
-		var line = Line2D.new()
-		line.points = [parr[sorted[0]], parr[sorted[1]], parr[sorted[2]], parr[sorted[3]]]
-		add_child(line)
+#		var line = Line2D.new()
+#		line.points = [parr[sorted[0]], parr[sorted[1]], parr[sorted[2]], parr[sorted[3]]]
+#		add_child(line)
 		
 
 func add_node_edge(node: Vector2, edge: int):

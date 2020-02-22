@@ -1,11 +1,11 @@
 [gd_scene load_steps=14 format=2]
 
-[ext_resource path="res://mesh_test.gd" type="Script" id=1]
+[ext_resource path="res://experiments/mesh_test.gd" type="Script" id=1]
 [ext_resource path="res://camera_gimbal.tscn" type="PackedScene" id=2]
-[ext_resource path="res://quad.mesh" type="ArrayMesh" id=3]
-[ext_resource path="res://assets/TexturesCom_Roads0059_1_seamless_S.jpg" type="Texture" id=4]
-[ext_resource path="res://quad_square.mesh" type="ArrayMesh" id=5]
-[ext_resource path="res://assets/road002.material" type="Material" id=6]
+[ext_resource path="res://experiments/assets/quad.mesh" type="ArrayMesh" id=3]
+[ext_resource path="res://experiments/assets/TexturesCom_Roads0059_1_seamless_S.jpg" type="Texture" id=4]
+[ext_resource path="res://experiments/assets/quad_square.mesh" type="ArrayMesh" id=5]
+[ext_resource path="res://experiments/assets/road002.material" type="Material" id=6]
 
 [sub_resource type="CubeMesh" id=1]
 
@@ -24,7 +24,7 @@ albedo_texture = ExtResource( 4 )
 [sub_resource type="PlaneMesh" id=6]
 material = SubResource( 5 )
 
-[sub_resource type="SpatialMaterial" id=8]
+[sub_resource type="SpatialMaterial" id=7]
 albedo_texture = ExtResource( 4 )
 roughness = 0.8
 uv1_scale = Vector3( 0.5, 1, 1 )
@@ -67,4 +67,4 @@ material/0 = null
 [node name="SquareMeshInstance" type="MeshInstance" parent="."]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0, 0 )
 mesh = ExtResource( 5 )
-material/0 = SubResource( 8 )
+material/0 = SubResource( 7 )

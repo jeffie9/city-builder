@@ -121,4 +121,4 @@ func create_mesh():
 	surfTool.add_vertex(Vector3(-1, 1, 1))
 	surfTool.add_vertex(Vector3(1, 1, 1))
 	var mesh = surfTool.commit()
-	ResourceSaver.save("res://quad_square.mesh", mesh)
+	ResourceSaver.save("res://experiments/assets/quad_square.mesh", mesh)
