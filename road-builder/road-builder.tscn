@@ -1,8 +1,9 @@
-[gd_scene load_steps=9 format=2]
+[gd_scene load_steps=11 format=2]
 
 [ext_resource path="res://road-builder.gd" type="Script" id=1]
 [ext_resource path="res://roads.gd" type="Script" id=2]
 [ext_resource path="res://GUI.tscn" type="PackedScene" id=3]
+[ext_resource path="res://pathways.gd" type="Script" id=4]
 
 [sub_resource type="SpatialMaterial" id=1]
 albedo_color = Color( 0.0823529, 0.431373, 0.054902, 1 )
@@ -13,15 +14,21 @@ size = Vector2( 20, 20 )
 [sub_resource type="ConvexPolygonShape" id=3]
 points = PoolVector3Array( 10, 0, 10, -10, 0, 10, 10, 0, -10, -10, 0, -10 )
 
-[sub_resource type="SpatialMaterial" id=5]
+[sub_resource type="SpatialMaterial" id=4]
 flags_unshaded = true
 flags_use_point_size = true
 
-[sub_resource type="SpatialMaterial" id=4]
+[sub_resource type="SpatialMaterial" id=5]
 flags_unshaded = true
 flags_use_point_size = true
 params_point_size = 5.0
 albedo_color = Color( 0.0705882, 0.0901961, 0.392157, 1 )
+
+[sub_resource type="SpatialMaterial" id=6]
+flags_unshaded = true
+flags_use_point_size = true
+params_line_width = 2.0
+albedo_color = Color( 0.501961, 0.121569, 0.121569, 1 )
 
 [node name="Spatial" type="Spatial"]
 script = ExtResource( 1 )
@@ -39,10 +46,10 @@ material/0 = null
 shape = SubResource( 3 )
 
 [node name="cursor" type="ImmediateGeometry" parent="."]
-material_override = SubResource( 5 )
+material_override = SubResource( 4 )
 
 [node name="debug_cursor" type="ImmediateGeometry" parent="."]
-material_override = SubResource( 4 )
+material_override = SubResource( 5 )
 
 [node name="Camera" type="Camera" parent="."]
 transform = Transform( 1, 0, 0, 0, -1.62921e-07, 1, 0, -1, -1.62921e-07, 0, 8, 0 )
@@ -52,6 +59,13 @@ current = true
 "Persist",
 ]]
 script = ExtResource( 2 )
+
+[node name="Pathways" type="Node" parent="."]
+script = ExtResource( 4 )
+
+[node name="path_outline" type="ImmediateGeometry" parent="Pathways"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0 )
+material_override = SubResource( 6 )
 [connection signal="curve_selected" from="GUI" to="." method="_on_GUI_curve_selected"]
 [connection signal="straight_selected" from="GUI" to="." method="_on_GUI_straight_selected"]
 [connection signal="input_event" from="MeshInstance/StaticBody" to="." method="_on_StaticBody_input_event"]

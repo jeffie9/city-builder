@@ -13,7 +13,10 @@ onready var roadMaterial = preload("res://assets/road_two_lane.material")
 var road002 = preload("res://assets/road002.material")
 
 func _ready():
-	pass
+#	pass
+	load_game()
+	load_roads()
+	$Pathways.update_paths($Roads.road_segments)
 
 func _input(event):
 	if event.is_action_pressed("ui_save"):
@@ -21,6 +24,7 @@ func _input(event):
 	elif event.is_action_pressed("ui_load"):
 		load_game()
 		load_roads()
+		$Pathways.update_paths($Roads.road_segments)
 
 func _on_StaticBody_input_event(camera, event, click_position, click_normal, shape_idx):
 	if event is InputEventMouseMotion:
