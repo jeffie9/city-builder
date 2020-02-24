@@ -113,6 +113,16 @@ func _ready():
 		line.points = path
 		add_child(line)
 
+	var curve = Curve2D.new()
+#	curve.bake_interval = 1.0
+	for p in paths[0]:
+		curve.add_point(p)
+	$Path2D.curve = curve
+
+func _process(delta):
+	$Path2D/PathFollow2D.offset += delta * 50
+
+
 
 func add_node_edge(node: Vector2, edge: int):
 	var node_edges
