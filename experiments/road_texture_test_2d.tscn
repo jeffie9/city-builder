@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://experiments/assets/TexturesCom_Roads0059_1_seamless_S.jpg" type="Texture" id=1]
+
+[node name="road_texture_test_2d" type="Node2D"]
+
+[node name="Polygon2D" type="Polygon2D" parent="."]
+texture = ExtResource( 1 )
+polygon = PoolVector2Array( 279, 376, 91, 375, 93, 184, 280, 187 )
+uv = PoolVector2Array( 1024.66, 1024.66, 1.36987, 1026.03, 2.73973, 2.73973, 1024.66, 1.36986 )

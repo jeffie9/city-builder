@@ -2,6 +2,7 @@ extends Node2D
 
 var nodes = {}
 var edges = []
+var paths = []
 
 func _ready():
 	for edge in make_test_data():
@@ -16,11 +17,32 @@ func _ready():
 	for ip in nodes.keys():
 		var node = nodes[ip]
 		make_intersection(ip, node)
-#		print(node.polygon)
 		var polygon = Polygon2D.new()
 		polygon.polygon = node.polygon
 		polygon.color = Color.deeppink
 		add_child(polygon)
+		
+#		print(ip, node.poes.size())
+		var node_paths = []
+		node_paths.resize(node.poes.size())
+		# TODO figure out how to switch between left and right hand drive
+		for i in node.poes.size():
+			var node_path = []
+			for j in floor(node.poes[i].size() / 2):
+				for k in node.poes.size():
+					if i != k:
+						for m in range(ceil(node.poes[k].size() / 2) + 1, node.poes[k].size()):
+#							print("node poes", node.poes[i][j], node.poes[k][m])
+							var path_points = make_path(node.poes[i][j][0], node.poes[i][j][1], node.poes[k][m][0], node.poes[k][m][1])
+							node_path.push_back(path_points)
+							add_path(path_points)
+							var line = Line2D.new()
+							line.width = 2
+							line.points = path_points
+#							add_child(line)
+			node_paths[i] = node_path
+		node.paths = node_paths
+
 	for i in edges.size():
 		var edge = edges[i]
 		var narr = [ nodes[edge.points[0]], nodes[edge.points[edge.points.size() - 1]] ]
@@ -42,7 +64,55 @@ func _ready():
 #		var line = Line2D.new()
 #		line.points = [parr[sorted[0]], parr[sorted[1]], parr[sorted[2]], parr[sorted[3]]]
 #		add_child(line)
-		
+		var pth0 = narr[0].poes[Array(narr[0].sorted_segments).find(i)]
+		var pth1 = narr[1].poes[Array(narr[1].sorted_segments).find(i)]
+#		print(pth0[0], pth1[2])
+		# TODO add multi-lane logic
+		var line = Line2D.new()
+		line.width = 2
+		line.points = [pth0[0][0], pth1[2][0]]
+#		add_child(line)
+		add_path([pth0[0][0], pth1[2][0]])
+		line = Line2D.new()
+		line.width = 2
+		line.points = [pth0[2][0], pth1[0][0]]
+#		add_child(line)
+		add_path([pth0[2][0], pth1[0][0]])
+		edge.paths = [[pth0[0][0], pth1[2][0]], [pth0[2][0], pth1[0][0]]]
+
+	# dead-ends
+	for ip in nodes.keys():
+		var node = nodes[ip]
+		if node.edges.size() == 1:
+#			print(node.poes)
+			var ci = floor(node.poes[0].size() / 2)
+#			print(node.poes[0].size(), ci)
+			var node_path = []
+			for i in ci:
+#				print(i, " ", ci, " ", ci - (i + 1), " ", ci + (i + 1))
+#				print(node.poes[0][ci - (i + 1)], node.poes[0][ci + (i + 1)])
+				var s = node.poes[0][ci - (i + 1)]
+				var e = node.poes[0][ci + (i + 1)]
+				var d = s[0].distance_to(e[0])
+				var curve = Curve2D.new()
+				curve.bake_interval = 1.0
+				curve.add_point(s[0], Vector2.ZERO, (s[0] - s[1]).normalized() * d)
+				curve.add_point(e[0], (e[0] - e[1]).normalized() * d)
+				var line = Line2D.new()
+				line.width = 2
+				line.points = curve.get_baked_points()
+#				add_child(line)
+				node_path.push_back(curve.get_baked_points())
+				add_path(curve.get_baked_points())
+			node.paths = [node_path]
+
+	for path in paths:
+#		print(path)
+		var line = Line2D.new()
+		line.width = 2
+		line.points = path
+		add_child(line)
+
 
 func add_node_edge(node: Vector2, edge: int):
 	var node_edges
@@ -64,7 +134,7 @@ func make_intersection(ip, node):
 		var rec = make_rectangle(ip, op, 25.0)
 		node.polygon = PoolVector2Array([rec[0], rec[3]])
 		rec = make_rectangle(ip, op, 12.5)
-		node.paths = [PoolVector2Array([rec[0], rec[1]]), PoolVector2Array([ip, op]), PoolVector2Array([rec[3], rec[2]])]
+		node.poes = [[PoolVector2Array([rec[0], rec[1]]), PoolVector2Array([ip, op]), PoolVector2Array([rec[3], rec[2]])]]
 		node.sorted_segments = PoolIntArray([node.edges[0]])
 		return
 
@@ -95,7 +165,7 @@ func make_intersection(ip, node):
 		var inter = Geometry.line_intersects_line_2d(r1[2], r1[3] - r1[2], r2[1], r2[0] - r2[1])
 		intersection_polygon_points.push_back(inter)
 
-	var node_paths = []
+	var node_poes = []
 	for i in sorted_segments.size():
 		var seg1 = edges[sorted_segments[i]].points
 		var seg2 = edges[sorted_segments[(i + 1) % sorted_segments.size()]].points
@@ -117,11 +187,11 @@ func make_intersection(ip, node):
 		inter = Geometry.line_intersects_line_2d(rec[2], rec[3] - rec[2],
 				intersection_polygon_points[i1], intersection_polygon_points[i] - intersection_polygon_points[i1])
 		path_poe.push_back(PoolVector2Array([inter, rec[2]]))
-		node_paths.push_back(path_poe)
+		node_poes.push_back(path_poe)
 
 	node.polygon = intersection_polygon_points
 	node.sorted_segments = sorted_segments
-	node.paths = node_paths
+	node.poes = node_poes
 
 func sort_verticies_ccw(verts, ip = null):
 	if ip == null:
@@ -143,6 +213,36 @@ func sort_verticies_ccw(verts, ip = null):
 	for key in sorted_keys:
 		sorted_verticies.push_back(segments_by_angle[key])
 	return sorted_verticies
+
+# adds path to the end of an existing path else starts a new path
+func add_path(path):
+	# no attempt at optimization yet
+	var pn = path[path.size() - 1]
+	for p in paths:
+#		if path[0] == p[0] or pn == p[0] or path[0] == p[p.size() - 1] or pn == p[p.size() - 1]:
+#			print("found some equality")
+		if path[0] == p[0]:
+#			print("path[0] to head")
+			for i in range(1, path.size()):
+				p.push_front(path[i])
+			return
+		elif pn == p[0]:
+#			print("path[n] to head")
+			for i in range(path.size() - 1, -1, -1):
+				p.push_front(path[i])
+			return
+		elif path[0] == p[p.size() - 1]:
+#			print("path[0] to tail")
+			for i in range(1, path.size()):
+				p.push_back(path[i])
+			return
+		elif pn == p[p.size() - 1]:
+#			print("path[n] to tail")
+			for i in range(path.size() - 1, -1, -1):
+				p.push_back(path[i])
+			return
+	# not found, add new path
+	paths.push_back(Array(path))
 
 
 func make_intersection_1(intersection_point, segments) -> Dictionary :
@@ -178,6 +278,19 @@ func make_intersection_1(intersection_point, segments) -> Dictionary :
 		"polygon": intersection_polygon_points,
 		"sorted_segments": sorted_segments
 		}
+
+func make_path(s0, s1, e0, e1):
+	var dir = rad2deg(abs((s0 - s1).angle_to(e0 - e1)))
+	if dir > 1 and dir < 179:
+		var inter = Geometry.line_intersects_line_2d(s1, s0 - s1, e1, e0 - e1)
+		var curve = Curve2D.new()
+		curve.bake_interval = 1.0
+		curve.add_point(s0, Vector2.ZERO, inter - s0)
+		curve.add_point(e0, Vector2.ZERO, inter - e0)
+		return curve.get_baked_points()
+	else:
+		return PoolVector2Array([s0, e0])
+
 
 
 func make_rectangle(p1, p2, width = 25):
@@ -343,5 +456,5 @@ func make_test_data() -> Array :
 		{ "type": 0, "points": [500,100,400,300] },
 		{ "type": 0, "points": [600,400,400,300] },
 		{ "type": 0, "points": [300,500,400,300] },
-		{ "type": 0, "points": [500,400,300,500] },
+		{ "type": 0, "points": [450,425,300,500] },
 	]
