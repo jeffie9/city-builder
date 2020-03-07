@@ -4,12 +4,17 @@ var nodes = {}
 var edges = []
 var paths = []
 
+var astar = AStar2D.new()
+var start_point: Vector2
+var end_point: Vector2
+
 func _ready():
 	for edge in make_test_data():
 		var arr = PoolVector2Array()
 		for i in range(0, edge.points.size(), 2):
 			arr.push_back(Vector2(edge.points[i], edge.points[i+1]))
 		edges.push_back({ "points": arr, "type": edge.type })
+	#make_astar_from_edges()
 	for i in edges.size():
 		var edge = edges[i]
 		add_node_edge(edge.points[0], i)
@@ -106,6 +111,7 @@ func _ready():
 				add_path(curve.get_baked_points())
 			node.paths = [node_path]
 
+	make_astar_from_paths()
 	for path in paths:
 #		print(path)
 		var line = Line2D.new()
@@ -122,7 +128,20 @@ func _ready():
 func _process(delta):
 	$Path2D/PathFollow2D.offset += delta * 50
 
+func _input(event):
+	if event is InputEventMouseButton and event.button_index == BUTTON_LEFT and event.pressed:
+		start_point = event.position
+		update()
+	if event is InputEventMouseButton and event.button_index == BUTTON_RIGHT and event.pressed:
+		end_point = event.position
+		find_path()
+		update()
 
+func _draw():
+	if start_point != null:
+		draw_circle(start_point, 10, Color.green)
+	if end_point != null:
+		draw_circle(end_point, 10, Color.red)
 
 func add_node_edge(node: Vector2, edge: int):
 	var node_edges
@@ -254,6 +273,36 @@ func add_path(path):
 	# not found, add new path
 	paths.push_back(Array(path))
 
+func make_astar_from_edges():
+	var point_array = []
+	for edge in edges:
+		var p0_index = point_array.find(edge.points[0])
+		if p0_index == -1:
+			p0_index = point_array.size()
+			point_array.append(edge.points[0])
+			astar.add_point(p0_index, edge.points[0])
+		var p1_index = point_array.find(edge.points[edge.points.size() - 1])
+		if p1_index == -1:
+			p1_index = point_array.size()
+			point_array.append(edge.points[edge.points.size() - 1])
+			astar.add_point(p1_index, edge.points[edge.points.size() - 1])
+		astar.connect_points(p0_index, p1_index)
+
+func make_astar_from_paths():
+	var point_array = []
+	for path in paths:
+		for i in path.size() - 1:
+			var p0_index = point_array.find(path[i])
+			if p0_index == -1:
+				p0_index = point_array.size()
+				point_array.append(path[i])
+				astar.add_point(p0_index, path[i])
+			var p1_index = point_array.find(path[i + 1])
+			if p1_index == -1:
+				p1_index = point_array.size()
+				point_array.append(path[i + 1])
+				astar.add_point(p1_index, path[i + 1])
+			astar.connect_points(p0_index, p1_index)
 
 func make_intersection_1(intersection_point, segments) -> Dictionary :
 	# make first segment the base
@@ -301,6 +350,33 @@ func make_path(s0, s1, e0, e1):
 	else:
 		return PoolVector2Array([s0, e0])
 
+func find_path():
+	if start_point != null and end_point != null:
+		var start_id = astar.get_closest_point(start_point)
+		var end_id = astar.get_closest_point(end_point)
+		print(start_id, end_id)
+#		var line = Line2D.new()
+#		line.width = 2
+#		line.points = astar.get_point_path(start_id, end_id)
+#		add_child(line)
+	
+		var curve = Curve2D.new()
+		curve.bake_interval = 1.0
+		for p in astar.get_point_path(start_id, end_id):
+			curve.add_point(p)
+		$Path2D.curve = curve
+
+func find_closest_edge(point: Vector2):
+	var min_dist = INF
+	var min_index = -1
+	for i in edges.size():
+		var edge = edges[i]
+		var cp = Geometry.get_closest_point_to_segment_2d(point, edge.points[0], edge.points[1])
+		var dist = point.distance_squared_to(cp)
+		if dist < min_dist:
+			min_dist = dist
+			min_index = i
+	return min_index
 
 
 func make_rectangle(p1, p2, width = 25):
